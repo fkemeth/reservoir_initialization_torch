@@ -171,7 +171,10 @@ def plot_predictions():
                 str(config["GH"]["gh_lenght_chunks"])+'.pdf')
     plt.show()
 
+    print(f"Initialization_error: {np.mean(np.abs(c_chunks_train_test-predictions_test))}")
+
 plot_predictions()
+
 
 
 
@@ -346,4 +349,132 @@ ax4.text(-0.1, 1.1, "d", transform=ax4.transAxes, size=12, weight="bold")
 ax5.text(-0.1, 1.1, "e", transform=ax5.transAxes, size=12, weight="bold")
 plt.savefig("fig/figure_lorenz.pdf")
 plt.savefig("fig/figure_lorenz.png", dpi=400)
+plt.show()
+
+x, y = torch.tensor(dataset_val.input_data, dtype=torch.float64), torch.tensor(
+                dataset_val.output_data, dtype=torch.float64)
+out, _ = model.net(x.to(model.device), return_states=False)
+out = out[:, model.offset :]
+y = y[:, model.offset :]
+out_np = out.reshape(-1, out.shape[-1]).detach().cpu().numpy()
+y_np = y.reshape(-1, model.net.input_size).detach().cpu().numpy()
+
+model_error = np.mean(np.abs(out_np-y_np))
+initialization_error = 0.037759063284827435
+
+lyapunov_exponent = 0.8438
+
+time_array = dataset_test.tt[config["DATA"]["max_warmup"]:]
+expected_divergence = (model_error+initialization_error)*np.exp(lyapunov_exponent*(time_array-time_array[0]))
+plt.plot(time_array, expected_divergence)
+plt.show()
+
+t_series = [0, 1, 2]
+cm_to_inch = 0.39370079
+fig = plt.figure(figsize=(15.8 * cm_to_inch, 15.8 * cm_to_inch))
+ax1 = plt.subplot2grid((5, 2), (0, 0), colspan=1)
+for series in t_series[1:]:
+    ax1.plot(dataset_train.input_data[series], dataset_train.output_data[series], "-")
+ax1.set_xlabel(r"$u$", labelpad=0)
+ax1.set_ylabel(r"$v$", labelpad=0)
+ax2 = plt.subplot2grid((5, 2), (0, 1), colspan=1)
+ax2.scatter(V[:, 0], V[:, 1], c=c_chunks_train[:, 0], cmap=CMAP, s=3)
+ax2.set_xlabel(r"$\phi_1$", labelpad=-3)
+ax2.set_ylabel(r"$\phi_2$", labelpad=-3)
+ax3 = plt.subplot2grid((5, 2), (1, 0), colspan=2)
+for series in t_series[1:]:
+    ax3.plot(dataset_train.tt[:-1], dataset_train.input_data[series], "-x", markersize=3)
+ax3.set_xlabel("$t$", labelpad=0)
+ax3.set_ylabel("$u$")
+ax3.set_xlim((dataset_train.tt[0], dataset_train.tt[-1]))
+ax4 = plt.subplot2grid((5, 2), (2, 0), colspan=2)
+ax4.plot(dataset_test.tt[:-1], dataset_test.input_data[idx], "-x", markersize=3, label="Actual", color="red")
+ax4.plot(dataset_test.tt, trajectory_w_warmup_initial, "-x", markersize=3, label="Autonomous", color="blue")
+ax4.plot(
+    dataset_test.tt[: config["DATA"]["max_warmup"]],
+    dataset_test.input_data[idx, : config["DATA"]["max_warmup"]],
+    "-x",
+    markersize=3,
+    label="Driven",
+    color="green",
+)
+ax4.axvline(x=dataset_test.tt[config["DATA"]["max_warmup"]], color="k")
+ax4.set_xlabel("$t$", labelpad=0)
+ax4.set_ylabel("$u$")
+ax4.set_xlim((dataset_test.tt[0], dataset_test.tt[-1]))
+plt.legend(fontsize=8)
+ax5 = plt.subplot2grid((5, 2), (3, 0), colspan=2)
+ax5.plot(
+    dataset_test.tt[config["DATA"]["max_warmup"] : -1],
+    dataset_test.input_data[idx, config["DATA"]["max_warmup"] :],
+    "-x",
+    markersize=3,
+    label="Actual",
+    color="red",
+)
+ax5.plot(
+    dataset_test.tt[config["DATA"]["max_warmup"] - config["GH"]["gh_lenght_chunks"] :],
+    trajectory_w_warmup,
+    "-x",
+    markersize=3,
+    label="Autonomous with 7 steps warmup",
+    color="blue",
+)
+ax5.plot(
+    dataset_test.tt[config["DATA"]["max_warmup"] - config["GH"]["gh_lenght_chunks"] : config["DATA"]["max_warmup"]],
+    trajectory_w_warmup[: config["GH"]["gh_lenght_chunks"]],
+    "-x",
+    markersize=3,
+    label="Driven",
+    color="green",
+)
+ax5.plot(
+    dataset_test.tt[config["DATA"]["max_warmup"] - config["GH"]["gh_lenght_chunks"] :],
+    trajectory_gh,
+    "-x",
+    markersize=3,
+    label="Autonomous with cold start",
+    color="orange",
+)
+ax5.set_xlabel("$t$", labelpad=0)
+ax5.set_ylabel("$u$")
+ax5.axvline(x=dataset_test.tt[config["DATA"]["max_warmup"]], color="k")
+# ax5.set_xlim((dataset_test.tt[0], dataset_test.tt[-1]))
+ax5.set_ylim((-70, 30))
+ax5.set_xlim((20.5, 25))
+ax4.set_xlim((20.5, 25))
+plt.legend(fontsize=8)
+ax6 = plt.subplot2grid((5, 2), (4, 0), colspan=2)
+ax6.plot(
+    dataset_test.tt[config["DATA"]["max_warmup"] : -1],
+    np.abs(dataset_test.input_data[idx, config["DATA"]["max_warmup"] :, 0]-trajectory_gh[config["GH"]["gh_lenght_chunks"]:-1]),
+    "-x",
+    markersize=3,
+    label="Actual Error",
+    color="red",
+)
+ax6.plot(
+    dataset_test.tt[config["DATA"]["max_warmup"]:],
+    expected_divergence,
+    "-",
+    markersize=3,
+    label="Expected Error",
+    color="black",
+)
+ax6.set_xlabel("$t$", labelpad=0)
+ax6.set_ylabel("$error$")
+ax6.axvline(x=dataset_test.tt[config["DATA"]["max_warmup"]], color="k")
+# ax5.set_xlim((dataset_test.tt[0], dataset_test.tt[-1]))
+ax6.set_ylim((-1, 5))
+ax6.set_xlim((20.5, 25))
+plt.legend(fontsize=8)
+plt.subplots_adjust(bottom=0.08, left=0.09, top=0.97, right=0.97, hspace=0.35, wspace=0.3)
+ax1.text(-0.23, 1.0, "a", transform=ax1.transAxes, size=12, weight="bold")
+ax2.text(-0.23, 1.0, "b", transform=ax2.transAxes, size=12, weight="bold")
+ax3.text(-0.1, 1.1, "c", transform=ax3.transAxes, size=12, weight="bold")
+ax4.text(-0.1, 1.1, "d", transform=ax4.transAxes, size=12, weight="bold")
+ax5.text(-0.1, 1.1, "e", transform=ax5.transAxes, size=12, weight="bold")
+ax6.text(-0.1, 1.1, "f", transform=ax6.transAxes, size=12, weight="bold")
+plt.savefig("fig/figure_lorenz2.pdf")
+plt.savefig("fig/figure_lorenz2.png", dpi=400)
 plt.show()
