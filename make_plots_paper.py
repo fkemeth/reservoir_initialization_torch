@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import torch
-from dmaps_utils import create_geometric_harmonics, nystrom
 from utils import LoadBrusselatorDataset, config
 
+from dmaps_utils import create_geometric_harmonics, nystrom
 from plot_utils import load_model
 
 if config["EXAMPLE"] == "brusselator":
