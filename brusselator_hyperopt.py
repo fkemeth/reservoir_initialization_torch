@@ -3,9 +3,9 @@ import os
 
 import matplotlib.pyplot as plt
 import torch
+from hyperopt import fmin, hp, tpe
 from torch.utils.data import DataLoader
 from tqdm.auto import tqdm
-from hyperopt import hp, fmin, tpe
 
 from brusselator.config import config
 from brusselator.datasets import BrusselatorParallelDataset
@@ -52,6 +52,7 @@ dataloader_val = DataLoader(
     pin_memory=True,
 )
 
+
 def objective(args):
     reservoir_size, ridge_factor = args
     network = ESN(
@@ -77,7 +78,10 @@ def objective(args):
     loss = model.train(ridge=config["TRAINING"]["ridge"])
     return loss
 
-space = [hp.choice('reservoir_size', [128, 512, 2048, 4096]),
-         hp.choise('ridge_factor', [1e-9, 5e-9, 1e-8, 5e-8, 1e-7, 5e-7, 1e-6, 5e-6, 1e-5])]
+
+space = [
+    hp.choice("reservoir_size", [128, 512, 2048, 4096]),
+    hp.choise("ridge_factor", [1e-9, 5e-9, 1e-8, 5e-8, 1e-7, 5e-7, 1e-6, 5e-6, 1e-5]),
+]
 
 best = fmin(objective, space, algo=tpe.suggest, max_evals=2)

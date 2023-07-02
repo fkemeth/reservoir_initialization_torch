@@ -81,8 +81,9 @@ def max_lyap(pars, ic, stepper, d0=1e-8, nstep=1e4, dTarr=np.linspace(0.04, 0.16
     return m
 
 
-lyapunov_exponent = max_lyap(parameters, trajectory[-1], lorenz_step, plot_flag=True, nstep=2e4,
-                             dTarr=np.linspace(0.04, 0.16, 4)/10)
+lyapunov_exponent = max_lyap(
+    parameters, trajectory[-1], lorenz_step, plot_flag=True, nstep=2e4, dTarr=np.linspace(0.04, 0.16, 4) / 10
+)
 print(lyapunov_exponent)
 
 
