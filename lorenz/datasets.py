@@ -31,7 +31,7 @@ class LorenzDataset:
         else:
             print("Creating data")
             # time_array = np.linspace(0, len_trajectories / 50, len_trajectories + 1) + 20.0
-            time_array = np.linspace(0, len_trajectories / 25, len_trajectories + 1) + 20
+            time_array = np.linspace(0, len_trajectories / 50, len_trajectories + 1) + 20
             self.ids = np.arange(num_trajectories)
 
             self.input_data = []
